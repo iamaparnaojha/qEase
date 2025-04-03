@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -37,27 +38,37 @@ const AdminLogin = () => {
     setRegisterData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Here we would implement the actual login API call
-    console.log("Admin Login data:", loginData);
-    
-    // Simulating a successful login
-    toast({
-      title: "Login Successful",
-      description: "Welcome back to Q-ease Admin!",
-    });
-    
-    // Store token in localStorage (this would come from API)
-    localStorage.setItem("qeaseAuthToken", "sample-admin-jwt-token");
-    localStorage.setItem("qeaseUserType", "admin");
-    
-    // Redirect to admin dashboard
-    navigate("/admin/dashboard");
+    try {
+      const response = await axios.post('/api/auth/login', {
+        email: loginData.email,
+        password: loginData.password
+      });
+      
+      if (response.data.token) {
+        localStorage.setItem("qeaseAuthToken", `Bearer ${response.data.token}`);
+        localStorage.setItem("qeaseUserType", "admin");
+        
+        toast({
+          title: "Login Successful",
+          description: "Welcome back to Q-ease Admin!",
+        });
+        
+        navigate("/admin/dashboard");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: error.response?.data?.message || "Invalid credentials",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     
     // Validation
@@ -70,17 +81,38 @@ const AdminLogin = () => {
       return;
     }
     
-    // Here we would implement the actual registration API call
-    console.log("Admin Register data:", registerData);
-    
-    // Simulating a successful registration
-    toast({
-      title: "Registration Successful",
-      description: "Your admin account has been created. Please log in.",
-    });
-    
-    // Switch to login tab
-    setActiveTab("login");
+    try {
+      const response = await axios.post('/api/auth/register', {
+        name: registerData.name,
+        email: registerData.email,
+        password: registerData.password,
+        userType: 'admin'
+      });
+      
+      if (response.data.token) {
+        toast({
+          title: "Registration Successful",
+          description: "Your admin account has been created. Please log in.",
+        });
+        
+        // Clear form and switch to login tab
+        setRegisterData({
+          name: "",
+          businessName: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+        setActiveTab("login");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: error.response?.data?.message || "Failed to create account",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

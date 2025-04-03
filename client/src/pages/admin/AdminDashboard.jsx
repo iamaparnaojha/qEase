@@ -9,6 +9,8 @@ import { QrCode, Users, Clock, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+axios.defaults.baseURL = 'http://localhost:5001';
+
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -36,13 +38,14 @@ const AdminDashboard = () => {
         }
 
         const response = await axios.get('/api/queues/admin/queues', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: token }
         });
 
         if (response.data.success) {
           setQueues(response.data.queues);
         }
       } catch (error) {
+        console.error('Fetch queues error:', error);
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to fetch queues",
@@ -94,18 +97,22 @@ const AdminDashboard = () => {
         return;
       }
 
+      console.log('Creating queue with data:', {
+        name: newQueue.name.trim(),
+        perUserTimeMin: parseInt(newQueue.perUserTimeMin)
+      });
+
       const response = await axios.post('/api/queues/create', 
         {
           name: newQueue.name.trim(),
           perUserTimeMin: parseInt(newQueue.perUserTimeMin)
         },
         {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers: { Authorization: token }
         }
       );
+      
+      console.log('Queue creation response:', response.data);
       
       if (response.data.success) {
         setQueues(prevQueues => [...prevQueues, response.data.queue]);
@@ -117,7 +124,7 @@ const AdminDashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Queue creation error:', error);
+      console.error('Queue creation error:', error.response || error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to create queue. Please try again.",
