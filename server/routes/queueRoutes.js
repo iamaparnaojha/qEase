@@ -68,8 +68,12 @@ router.post('/create', authMiddleware.authUser, async (req, res) => {
 // Get all active queues for an admin
 router.get('/admin/queues', authMiddleware.authUser, async (req, res) => {
   try {
+     
+
+    // console.log(req.user.id)
+
     const queues = await Queue.find({ 
-      adminId: req.user._id,
+      adminId: req.user.id,
       status: 'active'
     });
     
