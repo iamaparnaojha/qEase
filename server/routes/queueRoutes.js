@@ -191,7 +191,7 @@ router.put('/end/:queueId', authMiddleware.authUser, async (req, res) => {
 // Get queue details
 router.get('/:queueId', authMiddleware.authUser, async (req, res) => {
   try {
-    const queue = await Queue.findOne({ queueId: req.params.queueId })
+    const queue = await Queue.findOne({ _id : req.params.queueId })
       .populate('users.userId', 'name email');
     
     if (!queue) {
