@@ -153,13 +153,16 @@ router.post('/join', authMiddleware.authUser, async (req, res) => {
 });
 
 // End queue (Admin only)
-router.post('/end/:queueId', authMiddleware.authUser, async (req, res) => {
+router.put('/end/:queueId', authMiddleware.authUser, async (req, res) => {
   try {
+    // console.log(req.user.id)
     const queue = await Queue.findOne({ 
-      queueId: req.params.queueId,
-      adminId: req.user._id,
+      _id: req.params.queueId,
+      adminId: req.user.id,
       status: 'active'
     });
+
+    console.log(queue)
     
     if (!queue) {
       return res.status(404).json({
