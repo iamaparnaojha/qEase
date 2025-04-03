@@ -1,11 +1,9 @@
-
-// This is a sample server file structure for your Express.js and MongoDB backend
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
-import queueRoutes from './routes/queueRoutes.js';
+import queueRoutes from './routes/queues.js';
 import userRoutes from './routes/users.js';
 
 // Load environment variables

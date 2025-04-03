@@ -1,13 +1,20 @@
-const express = require('express');
+import express from 'express';
+import Queue from '../models/Queue.js';
+import QRCode from 'qrcode';
+import * as authMiddleware from '../middleware/auth.js';
+import User from '../models/User.js';
+
 const router = express.Router();
-const Queue = require('../models/Queue');
-const QRCode = require('qrcode');
-const auth = require('../middleware/auth');
 
 // Create a new queue (Admin only)
-router.post('/create', auth, async (req, res) => {
+router.post('/create', authMiddleware.authUser, async (req, res) => {
   try {
-    const { name, perUserTimeMin } = req.body;
+    const name = req.body.name;
+    const perUserTimeMin = req.body.perUserTimeMin
+
+
+    // console.log("name : ", name)
+    // console.log("perUserTimeMin: ", perUserTimeMin )
     
     if (!name || !perUserTimeMin) {
       return res.status(400).json({
@@ -18,15 +25,19 @@ router.post('/create', auth, async (req, res) => {
 
     // Generate unique queue ID
     const queueId = 'Q-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+
+    // console.log(queueId)
     
     // Generate QR code with full URL
     const qrCodeData = `${process.env.CLIENT_URL || 'http://localhost:3000'}/join/${queueId}`;
     const qrCode = await QRCode.toDataURL(qrCodeData);
+
+  //  console.log(req.user.id)
     
     const queue = new Queue({
       queueId,
       name,
-      adminId: req.user._id,
+      adminId: req.user.id,
       perUserTimeMin: Number(perUserTimeMin),
       qrCode
     });
@@ -55,7 +66,7 @@ router.post('/create', auth, async (req, res) => {
 });
 
 // Get all active queues for an admin
-router.get('/admin/queues', auth, async (req, res) => {
+router.get('/admin/queues', authMiddleware.authUser, async (req, res) => {
   try {
     const queues = await Queue.find({ 
       adminId: req.user._id,
@@ -85,7 +96,7 @@ router.get('/admin/queues', auth, async (req, res) => {
 });
 
 // Join a queue (User)
-router.post('/join', auth, async (req, res) => {
+router.post('/join', authMiddleware.authUser, async (req, res) => {
   try {
     const { queueId } = req.body;
     
@@ -137,7 +148,7 @@ router.post('/join', auth, async (req, res) => {
 });
 
 // End queue (Admin only)
-router.post('/end/:queueId', auth, async (req, res) => {
+router.post('/end/:queueId', authMiddleware.authUser, async (req, res) => {
   try {
     const queue = await Queue.findOne({ 
       queueId: req.params.queueId,
@@ -170,7 +181,7 @@ router.post('/end/:queueId', auth, async (req, res) => {
 });
 
 // Get queue details
-router.get('/:queueId', auth, async (req, res) => {
+router.get('/:queueId', authMiddleware.authUser, async (req, res) => {
   try {
     const queue = await Queue.findOne({ queueId: req.params.queueId })
       .populate('users.userId', 'name email');
@@ -210,4 +221,4 @@ router.get('/:queueId', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router

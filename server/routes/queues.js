@@ -1,22 +1,23 @@
+import express from 'express';
+import Queue from '../models/Queue.js';
+import User from '../models/User.js';
+import  * as authMiddleware  from '../middleware/auth.js';
+import { body, validationResult } from 'express-validator';
+import QRCode from 'qrcode';
 
-const express = require('express');
 const router = express.Router();
-const Queue = require('../models/Queue');
-const User = require('../models/User');
-const auth = require('../middleware/auth');
-const { body, validationResult } = require('express-validator');
-const QRCode = require('qrcode');
 
 // Create a new queue (Admin only)
 router.post(
   '/',
   [
-    auth,
+    authMiddleware.authUser,
     body('name').notEmpty().withMessage('Queue name is required'),
     body('perUserTimeMinutes').isNumeric().withMessage('Per user time must be a number')
   ],
   async (req, res) => {
     // Verify admin
+  
     if (req.user.userType !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
@@ -58,7 +59,7 @@ router.post(
 );
 
 // Get all queues for an admin
-router.get('/admin', auth, async (req, res) => {
+router.get('/admin', authMiddleware.authUser, async (req, res) => {
   // Verify admin
   if (req.user.userType !== 'admin') {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
@@ -90,7 +91,7 @@ router.get('/admin', auth, async (req, res) => {
 });
 
 // Get queue details by ID (Admin only)
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authMiddleware.authUser, async (req, res) => {
   try {
     const queue = await Queue.findById(req.params.id);
     
@@ -157,7 +158,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Join a queue (User only)
-router.post('/join', auth, async (req, res) => {
+router.post('/join', authMiddleware.authUser, async (req, res) => {
   // Verify user
   if (req.user.userType !== 'user') {
     return res.status(403).json({ message: 'Access denied. User only.' });
@@ -229,7 +230,7 @@ router.post('/join', auth, async (req, res) => {
 });
 
 // Leave a queue (User only)
-router.post('/:id/leave', auth, async (req, res) => {
+router.post('/:id/leave', authMiddleware.authUser, async (req, res) => {
   // Verify user
   if (req.user.userType !== 'user') {
     return res.status(403).json({ message: 'Access denied. User only.' });
@@ -282,7 +283,7 @@ router.post('/:id/leave', auth, async (req, res) => {
 });
 
 // Serve a user in the queue (Admin only)
-router.post('/:id/serve/:userId', auth, async (req, res) => {
+router.post('/:id/serve/:userId', authMiddleware.authUser, async (req, res) => {
   // Verify admin
   if (req.user.userType !== 'admin') {
     return res.status(403).json({ message: 'Access denied. Admin only.' });
@@ -341,4 +342,4 @@ router.post('/:id/serve/:userId', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router

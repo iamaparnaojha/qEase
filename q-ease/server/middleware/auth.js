@@ -1,18 +1,16 @@
-import jwt from 'jsonwebtoken';  // ✅ Use import instead of require()
+// filepath: c:\Users\vansh\Desktop\q-ease\server\middleware\auth.js
+import jwt from 'jsonwebtoken';
 
 export const authUser = async (req, res, next) => {
     try {
-        const token = req.cookies?.token || req.headers?.authorization?.startsWith('Bearer ') 
+        const token = req.cookies?.token || (req.headers?.authorization?.startsWith('Bearer ') 
             ? req.headers.authorization.split(" ")[1] 
-            : null;
-
-            // console.log(token)
+            : null);
 
         if (!token) {
             return res.status(401).json({ error: "Please login to continue" });
         }
 
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();

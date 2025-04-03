@@ -1,3 +1,4 @@
+// filepath: c:\Users\vansh\Desktop\q-ease\server\models\Queue.js
 import mongoose from 'mongoose';
 
 const queueSchema = new mongoose.Schema({
@@ -29,24 +30,22 @@ const queueSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  users: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-      joinedAt: {
-        type: Date,
-        default: Date.now,
-      },
-      status: {
-        type: String,
-        enum: ['waiting', 'processing', 'completed'],
-        default: 'waiting',
-      },
-      estimatedTime: Number,
+  users: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
-  ],
+    joinedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    status: {
+      type: String,
+      enum: ['waiting', 'processing', 'completed'],
+      default: 'waiting',
+    },
+    estimatedTime: Number,
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
@@ -57,7 +56,7 @@ const queueSchema = new mongoose.Schema({
 });
 
 // Generate queue ID before saving
-queueSchema.pre('save', function (next) {
+queueSchema.pre('save', function(next) {
   if (!this.queueId) {
     this.queueId = 'Q-' + Math.random().toString(36).substr(2, 6).toUpperCase();
   }
@@ -65,8 +64,8 @@ queueSchema.pre('save', function (next) {
 });
 
 // Calculate estimated wait time for a new user
-queueSchema.methods.calculateEstimatedTime = function () {
-  const waitingUsers = this.users.filter((user) => user.status === 'waiting').length;
+queueSchema.methods.calculateEstimatedTime = function() {
+  const waitingUsers = this.users.filter(user => user.status === 'waiting').length;
   return waitingUsers * this.perUserTimeMin;
 };
 

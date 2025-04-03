@@ -1,9 +1,8 @@
-
 import express from 'express';
 import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
-// import { defaultEventBridgePolicies } from 'twilio/lib/jwt/taskrouter/util';
 
+// Create a router instance
 const router = express.Router();
 
 // Register a new user
@@ -41,11 +40,6 @@ router.post(
 
       // Generate token
       const token = user.generateAuthToken();
-
-      // Store token in localStorage
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('token', token);
-      }
 
       // Set token as cookie
       res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
@@ -97,10 +91,7 @@ router.post(
       // Generate token
       const token = user.generateAuthToken();
 
-      console.log(token)
-
       res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
 
       const userResponse = {
         id: user._id,
@@ -121,4 +112,5 @@ router.post(
   }
 );
 
-export default router
+// Export the router
+export default router;
