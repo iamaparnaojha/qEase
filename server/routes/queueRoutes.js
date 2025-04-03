@@ -104,7 +104,8 @@ router.post('/join', authMiddleware.authUser, async (req, res) => {
   try {
     const { queueId } = req.body;
     
-    const queue = await Queue.findOne({ queueId, status: 'active' });
+    const queue = await Queue.findOne({ _id :  queueId, status: 'active' });
+        console.log(queue)
     if (!queue) {
       return res.status(404).json({
         success: false,
