@@ -3,6 +3,7 @@ import Queue from '../models/Queue.js';
 import QRCode from 'qrcode';
 import * as authMiddleware from '../middleware/auth.js';
 import User from '../models/User.js';
+import { sendSMS } from '../utils/twilioService.js';
 
 const router = express.Router();
 
@@ -435,6 +436,55 @@ router.delete('/:queueId', authMiddleware.authUser, async (req, res) => {
       success: false,
       message: 'Error deleting queue',
       error: error.message
+    });
+  }
+});
+
+router.post('/check-notifications', async (req, res) => {
+  try {
+    // Find all active queues
+    const activeQueues = await Queue.find({ 
+      status: 'active' 
+    }).populate({
+      path: 'users.userId',
+      select: 'name phoneNumber'
+    });
+
+    for (const queue of activeQueues) {
+      const waitingUsers = queue.users.filter(u => u.status === 'waiting');
+      
+      for (let i = 0; i < waitingUsers.length; i++) {
+        const user = waitingUsers[i];
+        
+        // Calculate current position
+        const position = i + 1;
+        const estimatedTime = position * queue.perUserTimeMin;
+
+        // Check if estimated time is 5 minutes or less and notification hasn't been sent
+        if (estimatedTime <= 5 && !user.notificationSent && user.userId.phoneNumber) {
+          // Send SMS notification
+          const message = `Your turn in ${queue.name} queue is coming up in about ${estimatedTime} minutes! Please be ready.`;
+          
+          const smsSent = await sendSMS(user.userId.phoneNumber, message);
+          
+          if (smsSent) {
+            // Mark notification as sent
+            user.notificationSent = true;
+            await queue.save();
+            
+            console.log(`Notification sent to user ${user.userId.name} for queue ${queue.name}`);
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Notifications checked and sent' });
+  } catch (error) {
+    console.error('Error in notification check:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error checking notifications',
+      error: error.message 
     });
   }
 });

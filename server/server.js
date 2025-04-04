@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import queueRoutes from './routes/queueRoutes.js';
 import userRoutes from './routes/users.js';
+import { startNotificationCron } from './utils/cronJobs.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,8 +35,12 @@ app.use((err, req, res, next) => {
   res.status(500).send({ message: 'Something went wrong!', error: err.message });
 });
 
+// Start cron jobs
+startNotificationCron();
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

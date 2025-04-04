@@ -45,6 +45,10 @@ const queueSchema = new mongoose.Schema({
         default: 'waiting',
       },
       estimatedTime: Number,
+      notificationSent: {
+        type: Boolean,
+        default: false
+      }
     },
   ],
   createdAt: {
@@ -65,3 +69,4 @@ queueSchema.methods.calculateEstimatedTime = function () {
 const Queue = mongoose.model('Queue', queueSchema);
 
 export default Queue;
+
