@@ -1,9 +1,9 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import axios from "axios";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import UserLogin from "./pages/auth/UserLogin";
@@ -12,6 +12,15 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import QueueDetail from "./pages/admin/QueueDetail";
 import UserDashboard from "./pages/user/UserDashboard";
 import ProtectedRoute from "./utils/ProtectedRoute";
+
+// Set default base URL for axios
+axios.defaults.baseURL = 'http://localhost:5001';
+
+// Set default headers if token exists
+const token = localStorage.getItem("qeaseAuthToken");
+if (token) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+}
 
 const queryClient = new QueryClient();
 

@@ -9,6 +9,7 @@ import { QrCode, Users, Clock, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+// Set default base URL for axios
 axios.defaults.baseURL = 'http://localhost:5001';
 
 const AdminDashboard = () => {
@@ -38,21 +39,22 @@ const AdminDashboard = () => {
         }
 
         const response = await axios.get('/api/queues/admin/queues', {
-          headers: { Authorization: token }
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         if (response.data.success) {
           setQueues(response.data.queues);
         }
       } catch (error) {
-        console.error('Fetch queues error:', error);
-        toast({
-          title: "Error",
-          description: error.response?.data?.message || "Failed to fetch queues",
-          variant: "destructive",
-        });
+        console.error('Error fetching queues:', error);
         if (error.response?.status === 401) {
           navigate("/admin/login");
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to fetch queues. Please try again.",
+            variant: "destructive",
+          });
         }
       } finally {
         setLoading(false);
@@ -64,27 +66,9 @@ const AdminDashboard = () => {
 
   const handleCreateQueue = async (e) => {
     e.preventDefault();
-    
-    if (!newQueue.name) {
-      toast({
-        title: "Error",
-        description: "Please provide a queue name",
-        variant: "destructive",
-      });
-      return;
-    }
+    setCreating(true);
 
-    if (!newQueue.perUserTimeMin || newQueue.perUserTimeMin < 1) {
-      toast({
-        title: "Error",
-        description: "Time per user must be at least 1 minute",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
-      setCreating(true);
       const token = localStorage.getItem("qeaseAuthToken");
       
       if (!token) {
@@ -108,7 +92,7 @@ const AdminDashboard = () => {
           perUserTimeMin: parseInt(newQueue.perUserTimeMin)
         },
         {
-          headers: { Authorization: token }
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
       

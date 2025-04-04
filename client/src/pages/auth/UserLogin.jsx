@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 const UserLogin = () => {
   const navigate = useNavigate();
@@ -36,27 +37,52 @@ const UserLogin = () => {
     setRegisterData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     
-    // Here we would implement the actual login API call
-    console.log("Login data:", loginData);
-    
-    // Simulating a successful login
-    toast({
-      title: "Login Successful",
-      description: "Welcome back to Q-ease!",
-    });
-    
-    // Store token in localStorage (this would come from API)
-    localStorage.setItem("qeaseAuthToken", "sample-user-jwt-token");
-    localStorage.setItem("qeaseUserType", "user");
-    
-    // Redirect to user dashboard
-    navigate("/user/dashboard");
+    try {
+      console.log('Sending login request with:', loginData);
+
+      const response = await axios.post('/api/auth/login', loginData);
+      console.log('Login response:', response.data);
+      
+      if (response.data.token) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back to Q-ease!",
+        });
+        
+        // Store token and user type
+        localStorage.setItem("qeaseAuthToken", response.data.token);
+        localStorage.setItem("qeaseUserType", response.data.user.userType);
+        localStorage.setItem("qeaseUser", JSON.stringify(response.data.user));
+        
+        // Set default axios headers for future requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        
+        // Redirect to user dashboard
+        navigate("/user/dashboard");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: response.data.message || "Invalid credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || 
+                         error.response?.data?.errors?.[0]?.msg || 
+                         "Failed to login. Please try again.";
+      toast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     
     // Validation
@@ -69,17 +95,49 @@ const UserLogin = () => {
       return;
     }
     
-    // Here we would implement the actual registration API call
-    console.log("Register data:", registerData);
-    
-    // Simulating a successful registration
-    toast({
-      title: "Registration Successful",
-      description: "Your account has been created. Please log in.",
-    });
-    
-    // Switch to login tab
-    setActiveTab("login");
+    try {
+      console.log('Sending register request with:', {
+        name: registerData.name,
+        email: registerData.email,
+        password: registerData.password,
+        userType: 'user'
+      });
+
+      const response = await axios.post('/api/auth/register', {
+        name: registerData.name,
+        email: registerData.email,
+        password: registerData.password,
+        userType: 'user'
+      });
+      
+      console.log('Register response:', response.data);
+
+      if (response.data.token) {
+        toast({
+          title: "Registration Successful",
+          description: "Your account has been created. You can now login.",
+        });
+        
+        // Clear form and switch to login tab
+        setRegisterData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+        setActiveTab("login");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || 
+                         error.response?.data?.errors?.[0]?.msg || 
+                         "Failed to register. Please try again.";
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   return (

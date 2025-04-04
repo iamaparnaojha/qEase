@@ -12,7 +12,7 @@ const queueSchema = new mongoose.Schema({
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin',
+    ref: 'User',
     required: true,
   },
   perUserTimeMin: {
@@ -54,14 +54,6 @@ const queueSchema = new mongoose.Schema({
   endedAt: {
     type: Date,
   },
-});
-
-// Generate queue ID before saving
-queueSchema.pre('save', function (next) {
-  if (!this.queueId) {
-    this.queueId = 'Q-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  }
-  next();
 });
 
 // Calculate estimated wait time for a new user

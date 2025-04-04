@@ -48,7 +48,7 @@ const AdminLogin = () => {
       });
       
       if (response.data.token) {
-        localStorage.setItem("qeaseAuthToken", `Bearer ${response.data.token}`);
+        localStorage.setItem("qeaseAuthToken", response.data.token);
         localStorage.setItem("qeaseUserType", "admin");
         
         toast({

@@ -1,4 +1,3 @@
-
 import express from 'express';
 import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
@@ -75,32 +74,37 @@ router.post(
     body('password').exists().withMessage('Password is required')
   ],
   async (req, res) => {
+    console.log('Login request body:', req.body);
+    
     // Validate request
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     try {
       // Check if user exists
       const user = await User.findOne({ email: req.body.email });
+      console.log('Found user:', user ? 'Yes' : 'No');
+      
       if (!user) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
 
       // Verify password
       const isMatch = await user.comparePassword(req.body.password);
+      console.log('Password match:', isMatch ? 'Yes' : 'No');
+      
       if (!isMatch) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
 
       // Generate token
       const token = user.generateAuthToken();
-
-      console.log(token)
+      console.log('Generated token:', token);
 
       res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
 
       const userResponse = {
         id: user._id,
@@ -110,6 +114,7 @@ router.post(
       };
 
       res.json({
+        success: true,
         message: 'Login successful',
         token,
         user: userResponse
