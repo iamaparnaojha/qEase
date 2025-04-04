@@ -144,10 +144,10 @@ router.post('/join', authMiddleware.authUser, async (req, res) => {
     }
     
     // Check if user is already in queue
-    const existingUser = queue.users.find(u => 
-      u.userId && u.userId.toString() === req.user._id.toString() &&
-      u.status === 'waiting'
-    );
+    const existingUser = queue.users.find(u => {
+      const userId = u.userId._id ? u.userId._id : u.userId;
+      return userId.toString() === req.user._id.toString() && u.status === 'waiting';
+    });
     
     console.log('Existing user in queue:', existingUser);
     
@@ -158,24 +158,24 @@ router.post('/join', authMiddleware.authUser, async (req, res) => {
       });
     }
     
-    // Calculate estimated time and position
+    // Calculate position and estimated time
     const waitingUsers = queue.users.filter(u => u.status === 'waiting').length;
-    const estimatedTime = waitingUsers * queue.perUserTimeMin;
-    const position = waitingUsers + 1;
+    const position = waitingUsers + 1; // New user will be at this position
+    const estimatedTime = position * queue.perUserTimeMin; // Calculate based on position
     
     console.log('Queue stats:', {
       waitingUsers,
-      estimatedTime,
       position,
-      perUserTimeMin: queue.perUserTimeMin
+      perUserTimeMin: queue.perUserTimeMin,
+      calculatedEstimatedTime: estimatedTime
     });
     
-    // Add user to queue
+    // Add user to queue with calculated estimated time
     queue.users.push({
       userId: req.user._id,
       status: 'waiting',
       joinedAt: new Date(),
-      estimatedTime
+      estimatedTime: estimatedTime // Store calculated time
     });
     
     const savedQueue = await queue.save();
@@ -193,6 +193,7 @@ router.post('/join', authMiddleware.authUser, async (req, res) => {
         createdAt: queue.createdAt,
         userPosition: position,
         userEstimatedTime: estimatedTime,
+        estimatedTime: estimatedTime, // Add calculated time
         totalWaiting: waitingUsers + 1,
         joinedAt: new Date()
       }
@@ -326,27 +327,50 @@ router.get('/joined', authMiddleware.authUser, async (req, res) => {
   try {
     console.log('Fetching joined queues for user:', req.user._id);
     
-    // Find all active queues where user is a member and waiting
     const queues = await Queue.find({
-      'users.userId': req.user._id,
-      'users.status': 'waiting',
+      users: {
+        $elemMatch: {
+          userId: req.user._id,
+          status: 'waiting'
+        }
+      },
       status: 'active'
-    }).populate('adminId', 'name');
+    }).populate('adminId', 'name')
+      .populate('users.userId', 'name email');
 
-    console.log('Found queues:', queues);
+    console.log('Found queues:', queues.length);
     
-    const userQueues = queues.map(queue => {
-      // Find user's position in this queue
+    const formattedQueues = queues.map(queue => {
+      // Find user's entry in this queue
       const userInQueue = queue.users.find(u => 
-        u.userId.toString() === req.user._id.toString() &&
+        u.userId._id.toString() === req.user._id.toString() && 
         u.status === 'waiting'
       );
 
-      // Calculate position
+      if (!userInQueue) {
+        console.log('User not found in queue:', queue.queueId);
+        return null;
+      }
+
+      // Calculate position - count how many waiting users joined before this user
       const position = queue.users.filter(u => 
         u.status === 'waiting' && 
         new Date(u.joinedAt) <= new Date(userInQueue.joinedAt)
       ).length;
+
+      // Calculate estimated time based on position
+      // If user is 1st in queue (position 1), they wait perUserTimeMin
+      // If user is 2nd, they wait 2 * perUserTimeMin
+      // If user is 3rd, they wait 3 * perUserTimeMin, and so on...
+      const estimatedTime = position * queue.perUserTimeMin;
+
+      console.log('Queue stats for', queue.queueId, {
+        position,
+        perUserTimeMin: queue.perUserTimeMin,
+        calculatedEstimatedTime: estimatedTime,
+        totalWaiting: queue.users.filter(u => u.status === 'waiting').length,
+        joinedAt: userInQueue.joinedAt
+      });
 
       return {
         id: queue.queueId,
@@ -355,15 +379,17 @@ router.get('/joined', authMiddleware.authUser, async (req, res) => {
         joinedAt: userInQueue.joinedAt,
         position,
         totalWaiting: queue.users.filter(u => u.status === 'waiting').length,
-        estimatedTime: userInQueue.estimatedTime
+        estimatedTime: estimatedTime, // Use calculated time based on position
+        perUserTimeMin: queue.perUserTimeMin,
+        qrCode: queue.qrCode
       };
-    });
+    }).filter(Boolean);
 
-    console.log('Formatted queues:', userQueues);
+    console.log('Final formatted queues:', formattedQueues);
 
     res.json({
       success: true,
-      queues: userQueues
+      queues: formattedQueues
     });
   } catch (error) {
     console.error('Error fetching joined queues:', error);

@@ -1,4 +1,3 @@
-
 import express from 'express';
 import User from '../models/User.js';
 import { body, validationResult } from 'express-validator';
@@ -12,6 +11,9 @@ router.post(
   [
     body('name').notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Please enter a valid email'),
+    body('phone')
+      .matches(/^[0-9]{10}$/)
+      .withMessage('Please enter a valid 10-digit phone number'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('userType').isIn(['user', 'admin']).withMessage('User type must be either user or admin')
   ],
@@ -24,15 +26,25 @@ router.post(
 
     try {
       // Check if user already exists
-      let user = await User.findOne({ email: req.body.email });
+      let user = await User.findOne({ 
+        $or: [
+          { email: req.body.email },
+          { phone: req.body.phone }
+        ]
+      });
+      
       if (user) {
-        return res.status(400).json({ message: 'User already exists' });
+        if (user.email === req.body.email) {
+          return res.status(400).json({ message: 'Email already registered' });
+        }
+        return res.status(400).json({ message: 'Phone number already registered' });
       }
 
       // Create new user
       user = new User({
         name: req.body.name,
         email: req.body.email,
+        phone: req.body.phone,
         password: req.body.password,
         userType: req.body.userType
       });
@@ -57,6 +69,7 @@ router.post(
           id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           userType: user.userType
         }
       });

@@ -23,6 +23,7 @@ const UserLogin = () => {
   const [registerData, setRegisterData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -95,10 +96,22 @@ const UserLogin = () => {
       return;
     }
     
+    // Phone number validation
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(registerData.phone)) {
+      toast({
+        title: "Registration Failed",
+        description: "Please enter a valid 10-digit phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       console.log('Sending register request with:', {
         name: registerData.name,
         email: registerData.email,
+        phone: registerData.phone,
         password: registerData.password,
         userType: 'user'
       });
@@ -106,6 +119,7 @@ const UserLogin = () => {
       const response = await axios.post('/api/auth/register', {
         name: registerData.name,
         email: registerData.email,
+        phone: registerData.phone,
         password: registerData.password,
         userType: 'user'
       });
@@ -122,6 +136,7 @@ const UserLogin = () => {
         setRegisterData({
           name: "",
           email: "",
+          phone: "",
           password: "",
           confirmPassword: "",
         });
@@ -247,6 +262,20 @@ const UserLogin = () => {
                       placeholder="name@example.com"
                       required
                       value={registerData.email}
+                      onChange={handleRegisterChange}
+                      className="h-11 px-4"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      placeholder="10-digit phone number"
+                      required
+                      pattern="[0-9]{10}"
+                      value={registerData.phone}
                       onChange={handleRegisterChange}
                       className="h-11 px-4"
                     />

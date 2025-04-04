@@ -19,7 +19,7 @@
     "mongoose": "^7.0.3",
     "qrcode": "^1.5.1",
     "shortid": "^2.2.16",
-    "twilio": "^4.8.0",
+    "twilio": "^4.23.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
