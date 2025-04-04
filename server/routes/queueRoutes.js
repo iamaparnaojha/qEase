@@ -28,13 +28,18 @@ router.post('/create', authMiddleware.authUser, async (req, res) => {
     const queueId = 'Q-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     console.log('Generated queue ID:', queueId);
     
+    // Generate QR code
+    const qrUrl = `http://localhost:3000/join/${queueId}`;
+    const qrCode = await QRCode.toDataURL(qrUrl);
+    console.log('Generated QR code');
+    
     // Create queue with all required fields
     const newQueue = new Queue({
       name,
       perUserTimeMin: Number(perUserTimeMin),
       adminId,
       queueId,
-      qrCode: `http://localhost:3000/join/${queueId}`
+      qrCode
     });
     console.log('New queue object:', newQueue);
 
@@ -351,6 +356,44 @@ router.get('/joined', authMiddleware.authUser, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching joined queues',
+      error: error.message
+    });
+  }
+});
+
+// Delete queue (Admin only)
+router.delete('/:queueId', authMiddleware.authUser, async (req, res) => {
+  try {
+    console.log('Delete queue request:', {
+      queueId: req.params.queueId,
+      adminId: req.user.id
+    });
+
+    // Find queue by queueId and check if admin owns it
+    const queue = await Queue.findOne({ 
+      queueId: req.params.queueId,
+      adminId: req.user.id
+    });
+    
+    if (!queue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Queue not found or you do not have permission to delete it'
+      });
+    }
+
+    // Delete the queue
+    await Queue.deleteOne({ _id: queue._id });
+    
+    res.json({
+      success: true,
+      message: 'Queue deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting queue:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting queue',
       error: error.message
     });
   }

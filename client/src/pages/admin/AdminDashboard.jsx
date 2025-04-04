@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Users, Clock, Eye } from "lucide-react";
+import { QrCode, Users, Clock, Eye, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -128,6 +128,40 @@ const AdminDashboard = () => {
     navigate(`/admin/queue/${queueId}`);
   };
 
+  const handleDeleteQueue = async (queueId) => {
+    try {
+      const token = localStorage.getItem("qeaseAuthToken");
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please login again to delete the queue",
+          variant: "destructive",
+        });
+        navigate("/admin/login");
+        return;
+      }
+
+      const response = await axios.delete(`/api/queues/${queueId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        setQueues(prevQueues => prevQueues.filter(q => q.id !== queueId));
+        toast({
+          title: "Success",
+          description: "Queue deleted successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting queue:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to delete queue. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -204,14 +238,22 @@ const AdminDashboard = () => {
                         Queue ID: {queue.id}
                       </p>
                     </CardContent>
-                    <CardFooter className="bg-gradient-to-r from-gray-50 to-blue-50 border-t pt-3">
+                    <CardFooter className="bg-gradient-to-r from-gray-50 to-blue-50 border-t pt-3 flex gap-2">
                       <Button 
                         variant="ghost" 
-                        className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors duration-300"
+                        className="w-1/2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors duration-300"
                         onClick={() => handleViewQueue(queue.id)}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         View Queue
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-1/2 text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors duration-300"
+                        onClick={() => handleDeleteQueue(queue.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
                       </Button>
                     </CardFooter>
                   </Card>

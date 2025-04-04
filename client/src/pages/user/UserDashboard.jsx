@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { QrCode, Clock, Users, LogOut, ScanLine } from "lucide-react";
+import { QrCode, Clock, Users, LogOut, ScanLine, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axios from "axios";
+import { QrReader } from 'react-qr-reader';
 
 // Set default base URL for axios
 axios.defaults.baseURL = 'http://localhost:5001';
@@ -37,6 +38,7 @@ const UserDashboard = () => {
   const [queueId, setQueueId] = useState("");
   const [joinedQueues, setJoinedQueues] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     const fetchJoinedQueues = async () => {
@@ -179,6 +181,63 @@ const UserDashboard = () => {
     }
   };
 
+  const handleScan = async (result) => {
+    if (result) {
+      // Extract queue ID from the scanned URL
+      const queueId = result.text.split('/').pop();
+      if (queueId) {
+        try {
+          setLoading(true);
+          setShowScanner(false);
+          
+          const token = localStorage.getItem("qeaseAuthToken");
+          if (!token) {
+            toast({
+              title: "Authentication Required",
+              description: "Please login to join a queue.",
+              variant: "destructive",
+            });
+            navigate("/user/login");
+            return;
+          }
+          
+          // Join the queue
+          const joinResponse = await axios.post('/api/queues/join', 
+            { queueId },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (joinResponse.data.success) {
+            const queue = joinResponse.data.queue;
+            setJoinedQueues(prev => [...prev, queue]);
+            toast({
+              title: "Success",
+              description: `Successfully joined ${queue.name}! Your position: ${queue.userPosition}`,
+            });
+          }
+        } catch (error) {
+          console.error('Error joining queue:', error);
+          toast({
+            title: "Error",
+            description: error.response?.data?.message || "Failed to join queue. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+  };
+
+  const handleScanError = (error) => {
+    console.error('QR scan error:', error);
+    toast({
+      title: "Error",
+      description: "Failed to scan QR code. Please try again or enter the code manually.",
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <UserNavbar />
@@ -253,29 +312,65 @@ const UserDashboard = () => {
               <CardHeader>
                 <CardTitle>Join a Queue</CardTitle>
                 <CardDescription>
-                  Enter a queue ID to join
+                  Enter a queue ID or scan QR code to join
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleJoinQueue} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="queueId">Queue ID</Label>
-                    <Input
-                      id="queueId"
-                      placeholder="e.g. Q-123456"
-                      value={queueId}
-                      onChange={(e) => setQueueId(e.target.value)}
-                      required
-                    />
+                {showScanner ? (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-2 z-10"
+                        onClick={() => setShowScanner(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <QrReader
+                        onResult={handleScan}
+                        onError={handleScanError}
+                        constraints={{ facingMode: 'environment' }}
+                        className="w-full aspect-square rounded-lg overflow-hidden"
+                      />
+                    </div>
+                    <p className="text-sm text-center text-gray-500">
+                      Position the QR code within the frame
+                    </p>
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={loading}
-                  >
-                    {loading ? "Joining..." : "Join Queue"}
-                  </Button>
-                </form>
+                ) : (
+                  <form onSubmit={handleJoinQueue} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="queueId">Queue ID</Label>
+                      <Input
+                        id="queueId"
+                        placeholder="e.g. Q-123456"
+                        value={queueId}
+                        onChange={(e) => setQueueId(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={loading}
+                      >
+                        {loading ? "Joining..." : "Join Queue"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full border-blue-200 hover:bg-blue-50"
+                        onClick={() => setShowScanner(true)}
+                        disabled={loading}
+                      >
+                        <QrCode className="w-4 h-4 mr-2" />
+                        Scan QR
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </CardContent>
             </Card>
             
