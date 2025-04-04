@@ -281,6 +281,18 @@ router.get('/:queueId', authMiddleware.authUser, async (req, res) => {
         userEstimatedTime = userInQueue.estimatedTime;
       }
     }
+
+    // Format users array
+    const formattedUsers = queue.users.map(user => ({
+      _id: user._id,
+      userId: user.userId._id,
+      name: user.userId.name,
+      email: user.userId.email,
+      joinedAt: user.joinedAt,
+      status: user.status,
+      estimatedTime: user.estimatedTime,
+      servedAt: user.servedAt
+    }));
     
     res.json({
       success: true,
@@ -294,7 +306,9 @@ router.get('/:queueId', authMiddleware.authUser, async (req, res) => {
         endedAt: queue.endedAt,
         userPosition,
         userEstimatedTime,
-        totalWaiting: queue.users.filter(u => u.status === 'waiting').length
+        totalWaiting: queue.users.filter(u => u.status === 'waiting').length,
+        users: formattedUsers,
+        qrCode: queue.qrCode
       }
     });
   } catch (error) {
